@@ -614,7 +614,9 @@ router.get('/resume', async (ctx)=>{
 								}
 							}))
 					}
-					data = {
+					code = 1;
+					msg = "简历获取成功"
+						data = {
 						personFields,
 						eduFields,
 						workFields,
@@ -635,5 +637,7 @@ router.get('/resume', async (ctx)=>{
 		msg
 	}
 });
+
+
 
 module.exports = router

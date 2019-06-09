@@ -17,6 +17,7 @@ const index = require('./routes/index')
 const users = require('./routes/users')
 const login = require('./routes/login')
 const resume = require('./routes/resume')
+const admin = require('./routes/admin')
 
 // error handler
 onerror(app)
@@ -59,6 +60,7 @@ app.use(index.routes(), index.allowedMethods())
 app.use(users.routes(), users.allowedMethods())
 app.use(login.routes(), login.allowedMethods())
 app.use(resume.routes(), resume.allowedMethods())
+app.use(admin.routes(), admin.allowedMethods())
 
 app.use(static(__dirname+"/static"));
 
