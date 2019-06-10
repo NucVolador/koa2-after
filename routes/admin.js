@@ -1,9 +1,14 @@
 const router = require('koa-router')()
 const AdminCompanyInfo = require("../dbs/models/company");
 const Job = require("../dbs/models/job");
+const ApplyList = require("../dbs/models/applyList");
+const Resume = require("../dbs/models/resume");
+
+const {EduModel,CompanyModel,ProjectModel,ResumeModel} = Resume;
+
+
 const fs = require('fs')
 const syspath = require('path')
-const mongo = require('mongodb')
 
 const BSON = require('bson')
 
@@ -119,13 +124,18 @@ router.post('/companyAvatar', async (ctx, next) => {
 				avatar: "\\" + path,
 				ownerId:userId
 			})
+			
 			let AdminCompanyInfo_save_result = await adminCompanyInfoInstance.save();
+			// let a = new Job({
+			// 	Company: adminCompanyInfoInstance.avatar,
+			// 	owner
+			// })
 			global.console.log(AdminCompanyInfo_save_result,"新增简历！");
 			code = 1,
-				msg = "上传成功",
-				data = {
-					avatar:"\\" + path
-				}
+			msg = "上传成功",
+			data = {
+				avatar:"\\" + path
+			}
 		}
 		
 	}catch (e) {
@@ -360,6 +370,393 @@ router.get('/deleteJob', async (ctx)=>{
 		code,
 		data,
 		msg
+	}
+});
+
+// 投递功能
+router.post("/applyList", async (ctx)=>{
+	let req = ctx.request.body
+	let {
+		userId,
+		jobId,
+		jobName,
+		createJobId
+	} = req;
+	let personFields= {
+		username: {
+			value: ""
+		},
+		sex	: {
+			value: ""
+		},
+		email: {
+			value: ""
+		},
+		phoneNum: {
+			value: ""
+		},
+		age: {
+			value: ""
+		},
+		educationMax: {
+			value: ""
+		},
+		introduce: {
+			value: ""
+		},
+		avatar: {
+			value: ""
+		}
+	}
+	let eduFields = {
+		college: {
+			value: ""
+		},
+		eduTime: {
+			value: ""
+		},
+		educationInfo: {
+			value: ""
+		},
+		major: {
+			value: ""
+		}
+	}
+	let workFields= {
+		company: {
+			value: ""
+		},
+		workTime: {
+			value: ""
+		},
+		jobName: {
+			value: ""
+		},
+		workDescription: {
+			value: ""
+		}
+	}
+	let projectFields= {
+		project: {
+			value: ""
+		},
+		projectTime: {
+			value: ""
+		},
+		roleName: {
+			value: ""
+		},
+		projectDescription: {
+			value: ""
+		}
+	}
+	let code,msg,data
+	try {
+		await ResumeModel.find({ownerId: userId})
+			.then(async resume_result=>{
+				if(resume_result.length > 0){
+					personFields= {
+						username: {
+							value: resume_result[0].username
+						},
+						sex	: {
+							value: resume_result[0].sex
+						},
+						email: {
+							value: resume_result[0].email
+						},
+						phoneNum: {
+							value: resume_result[0].phoneNum
+						},
+						age: {
+							value: resume_result[0].age
+						},
+						educationMax: {
+							value: resume_result[0].educationMax
+						},
+						introduce: {
+							value: resume_result[0].introduce
+						},
+						avatar: {
+							value: resume_result[0].avatar
+						}
+					}
+					if(resume_result[0].eduList.length>0){
+						await EduModel
+							.where({_id: resume_result[0].eduList[0]})
+							.then((instance=>{
+								eduFields = {
+									college: {
+										value: instance[0].college
+									},
+									eduTime: {
+										value: instance[0].eduTime
+									},
+									educationInfo: {
+										value: instance[0].educationInfo
+									},
+									major: {
+										value: instance[0].major
+									}
+								}
+							}))
+					}
+					if(resume_result[0].companyList.length>0){
+						await CompanyModel
+							.where({_id: resume_result[0].companyList[0]})
+							.then((instance=>{
+								workFields = {
+									company: {
+										value: instance[0].company
+									},
+									workTime: {
+										value: instance[0].workTime
+									},
+									jobName: {
+										value: instance[0].jobName
+									},
+									workDescription: {
+										value: instance[0].workDescription
+									}
+								}
+							}))
+					}
+					if(resume_result[0].projectList.length>0){
+						await ProjectModel
+							.where({_id: resume_result[0].projectList[0]})
+							.then((instance=>{
+								projectFields = {
+									project: {
+										value: instance[0].project
+									},
+									projectTime: {
+										value: instance[0].projectTime
+									},
+									roleName: {
+										value: instance[0].roleName
+									},
+									projectDescription: {
+										value: instance[0].projectDescription
+									}
+								}
+							}))
+					}
+					let resumeInfo = {
+						personFields,
+						eduFields,
+						workFields,
+						projectFields
+					}
+					let candidateName = resume_result[0].username;
+					// 若已投递则无法重复投递
+					await ApplyList
+						.find({
+							candidateId:userId,
+							jobId
+						})
+						.then( async (apply_result)=>{
+							if(apply_result.length > 0){
+								code = 1;
+								msg = "此职位已投递";
+								data = {}
+							}else{
+								await ApplyList
+									.create({
+										resumeInfo: JSON.stringify(resumeInfo),
+										jobName,
+										jobId,
+										candidateId: userId,
+										candidateName,
+										createJobId,
+										state: "0",
+										timestamp: new Date().getTime()
+										//	state : 0 已投递，1 面邀 ，2 通过 ，3 人才库
+									})
+									.then(instance=>{
+										if(instance){
+											code = 1;
+											msg = "投递成功！";
+											data = instance;
+										}else{
+											code = 1;
+											msg = "投递失败！";
+											data = instance;
+										}
+									})
+							}
+						})
+					
+					
+				}else{
+					data = null;
+					msg = "请先创建简历";
+					code = 1
+				}
+			})
+	}catch (e) {
+		console.log(e);
+	}
+	ctx.body={
+		code,
+		msg,
+		data
+	}
+})
+
+//企业筛选
+router.get("/applyList", async (ctx)=>{
+	let req = ctx.request.query;
+	let {
+		userId,
+		page
+	} = req;
+	let msg,code,result;
+	page = page?Number(page):1;
+	let item_list = [];
+	let page_size = 10;
+	let total_count = 0;
+	try {
+		await ApplyList
+			.find({createJobId: userId})
+			.then(async ApplyList_result=>{
+				total_count = ApplyList_result.length;
+			})
+		await ApplyList
+			.find({
+				createJobId: userId,
+				state:{ $in: ['0','1','2']}
+			})
+			.skip(page_size* (page-1))
+			.limit(page_size)
+			.sort({ timestamp: -1 })
+			.then(async ApplyList_result=>{
+				if(ApplyList_result.length > 0){
+					item_list= ApplyList_result
+					code = 1;
+					msg = "投递信息获取成功";
+					result = {
+						item_list,
+						page,
+						page_size,
+						total_count
+					}
+				}else{
+					result = {
+						item_list,
+						page,
+						page_size,
+						total_count
+					};
+					msg = "投递信息暂无";
+					code = 1
+				}
+			})
+	}catch (e) {
+		console.log(e);
+	}
+	
+	ctx.body={
+		msg,
+		code,
+		result
+	}
+})
+
+router.post("/updateApplyList", async (ctx) => {
+	let req = ctx.request.body
+	let {
+		jobId,
+		candidateId,
+		state
+	} = req;
+	let code,msg,data
+	try {
+		await ApplyList
+			.where({
+				jobId,
+				candidateId,
+			})
+			.update({
+				$set:{
+					state
+				}
+			})
+			.then(instance=>{
+				if(instance.n){
+					code = 1;
+					msg = "投递状态更新成功";
+					data = {}
+				}else{
+					code = -1;
+					msg = "投递状态更新失败"
+					data = {}
+				}
+			})
+	}catch (e) {
+		console.log(e);
+	}
+	ctx.body = {
+		code,
+		msg,
+		data
+	}
+});
+
+// 人才库
+router.get("/talentPool", async (ctx) => {
+	let req = ctx.request.query;
+	let {
+		userId,
+		page
+	} = req;
+	let msg,code,result;
+	page = page?Number(page):1;
+	let item_list = [];
+	let page_size = 10;
+	let total_count = 0;
+	try {
+		await ApplyList
+			.find({createJobId: userId})
+			.then(async ApplyList_result => {
+				total_count = ApplyList_result.length;
+			})
+		await ApplyList
+			.find({
+				createJobId: userId,
+				state: {$in: ['3']}
+			})
+			.skip(page_size * (page - 1))
+			.limit(page_size)
+			.sort({timestamp: -1})
+			.then(async ApplyList_result => {
+				if (ApplyList_result.length > 0) {
+					item_list = ApplyList_result
+					code = 1;
+					msg = "投递信息获取成功";
+					result = {
+						item_list,
+						page,
+						page_size,
+						total_count
+					}
+				} else {
+					result = {
+						item_list,
+						page,
+						page_size,
+						total_count
+					};
+					msg = "投递信息暂无";
+					code = 1
+				}
+			})
+	}catch(e){
+		console.log(e);
+	}
+	ctx.body={
+		msg,
+		code,
+		result
 	}
 })
 

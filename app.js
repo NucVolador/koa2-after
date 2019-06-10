@@ -18,6 +18,7 @@ const users = require('./routes/users')
 const login = require('./routes/login')
 const resume = require('./routes/resume')
 const admin = require('./routes/admin')
+const queryJob = require('./routes/queryJob')
 
 // error handler
 onerror(app)
@@ -61,6 +62,7 @@ app.use(users.routes(), users.allowedMethods())
 app.use(login.routes(), login.allowedMethods())
 app.use(resume.routes(), resume.allowedMethods())
 app.use(admin.routes(), admin.allowedMethods())
+app.use(queryJob.routes(), admin.allowedMethods())
 
 app.use(static(__dirname+"/static"));
 
