@@ -11,7 +11,7 @@
   "dependencies": {
     "bson": "^4.0.2",
     "debug": "^2.6.3",
-    "ejs": "~2.3.3",
+    "ejs": "~2.7.1",
     "koa": "^2.2.0",
     "koa-body": "^4.1.0",
     "koa-bodyparser": "^3.2.0",
